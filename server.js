@@ -9,8 +9,24 @@ app.use(cors());
 app.use(express.json());
 
 // -------- Paths --------
-const TASK_FILE = path.join(__dirname, 'data', 'tasks.json');
+const DATA_DIR = path.join(__dirname, 'data');
+const TASK_FILE = path.join(DATA_DIR, 'tasks.json');
 const INDEX_FILE = path.join(__dirname, 'index.html'); // your single HTML file
+
+// -------- Ensure data folder & tasks.json exist --------
+async function ensureDataFile() {
+  try {
+    // create folder if missing
+    await fs.mkdir(DATA_DIR, { recursive: true });
+
+    // check if tasks.json exists
+    await fs.access(TASK_FILE);
+  } catch {
+    // if not, create it with empty array
+    await fs.writeFile(TASK_FILE, '[]', 'utf8');
+    console.log('Created data/tasks.json with []');
+  }
+}
 
 // -------- Helpers --------
 async function readTasks() {
@@ -25,6 +41,7 @@ async function readTasks() {
 
 async function writeTasks(tasks) {
   await fs.writeFile(TASK_FILE, JSON.stringify(tasks, null, 2), 'utf8');
+  console.log('Saved tasks.json:', tasks.length, 'tasks');
 }
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
@@ -73,4 +90,7 @@ app.get('/', (req, res) => {
 
 // -------- Start Server --------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+ensureDataFile().then(() => {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+});
